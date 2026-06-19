@@ -13,6 +13,7 @@ export default function NewStaffPage() {
   const [error, setError] = useState('')
   const [form, setForm] = useState({
     full_name: '',
+    name: '',
     phone: '',
     role: 'driver',
     next_of_kin_name: '',
@@ -48,6 +49,7 @@ export default function NewStaffPage() {
         id: crypto.randomUUID(), // placeholder — will be replaced when they sign in
         org_id: profile!.org_id,
         full_name: form.full_name.trim(),
+        name: form.full_name.trim(),
         phone: formattedPhone,
         role: form.role,
         next_of_kin_name: form.next_of_kin_name.trim() || null,
