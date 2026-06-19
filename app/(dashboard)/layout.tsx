@@ -7,6 +7,7 @@ import {
   LayoutDashboard, Car, Users, MapPin, ClipboardList, Settings, LogOut, Menu, X
 } from 'lucide-react'
 import { useState } from 'react'
+import { OrgProvider } from '@/lib/org-context'
 import { cn } from '@/lib/utils'
 
 const nav = [
@@ -104,6 +105,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         {/* Page content */}
+        <OrgProvider>
         <main className="flex-1 overflow-y-auto p-6">
           {children}
         </main>
