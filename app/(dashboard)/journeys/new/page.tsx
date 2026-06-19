@@ -16,7 +16,7 @@ const STEPS = [
 ]
 
 interface Vehicle { id: string; registration: string; make: string; model: string }
-interface StaffMember { id: string; full_name: string; phone: string }
+interface StaffMember { id: string; name: string; phone: string }
 interface ChecklistItem { id: string; item_key: string; label: string; is_blocking: boolean; is_active: boolean }
 interface Passenger {
   full_name: string; phone: string; next_of_kin_name: string; next_of_kin_phone: string; signature: string
