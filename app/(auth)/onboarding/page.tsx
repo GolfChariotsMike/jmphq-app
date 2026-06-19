@@ -17,6 +17,8 @@ export default function OnboardingPage() {
 
   const [form, setForm] = useState({
     orgName: '',
+    name: '',
+    email: '',
     country: 'AU',
     industry: '',
   })
@@ -31,6 +33,7 @@ export default function OnboardingPage() {
   }
 
   async function handleSubmit() {
+    if (!form.name.trim()) { setError('Your name is required'); return }
     if (!form.orgName.trim()) { setError('Organisation name is required'); return }
     setLoading(true)
     setError('')
@@ -58,6 +61,8 @@ export default function OnboardingPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: form.orgName.trim(),
+        adminName: form.name.trim(),
+        adminEmail: form.email.trim() || null,
         country: form.country,
         industry: form.industry || null,
         logoUrl,
@@ -96,6 +101,25 @@ export default function OnboardingPage() {
           </div>
 
           <div className="space-y-4">
+            <div>
+              <label className="label">Your full name *</label>
+              <input
+                className="input"
+                placeholder="John Smith"
+                value={form.name}
+                onChange={e => setForm({ ...form, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="label">Your email address</label>
+              <input
+                className="input"
+                type="email"
+                placeholder="john@company.com"
+                value={form.email}
+                onChange={e => setForm({ ...form, email: e.target.value })}
+              />
+            </div>
             <div>
               <label className="label">Organisation name *</label>
               <input
@@ -154,7 +178,7 @@ export default function OnboardingPage() {
             {error && <p className="text-sm" style={{ color: 'var(--red)' }}>{error}</p>}
             <button
               className="btn-primary w-full"
-              onClick={() => { if (!form.orgName.trim()) { setError('Required'); return }; setError(''); setStep(2) }}
+              onClick={() => { if (!form.name.trim() || !form.orgName.trim()) { setError('Name and organisation are required'); return }; setError(''); setStep(2) }}
             >
               Continue →
             </button>

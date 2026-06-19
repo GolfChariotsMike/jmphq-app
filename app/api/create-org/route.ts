@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   )
 
   const body = await req.json()
-  const { name, country, industry, logoUrl } = body
+  const { name, country, industry, logoUrl, adminName, adminEmail } = body
 
   const trialEnds = new Date()
   trialEnds.setDate(trialEnds.getDate() + 14)
@@ -60,6 +60,8 @@ export async function POST(req: Request) {
       id: user.id,
       org_id: org.id,
       phone: user.phone,
+      name: adminName || null,
+      email: adminEmail || null,
       role: 'admin',
     })
 
