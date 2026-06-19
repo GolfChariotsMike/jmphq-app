@@ -38,7 +38,7 @@ export default function OnboardingPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
-    // Upload logo if provided
+    // Upload logo if provided (still uses client — storage doesn't need service role)
     let logoUrl: string | null = null
     if (logoFile) {
       const ext = logoFile.name.split('.').pop()
@@ -52,32 +52,20 @@ export default function OnboardingPage() {
       }
     }
 
-    // Create org
-    const trialEnds = new Date()
-    trialEnds.setDate(trialEnds.getDate() + 14)
-
-    const { data: org, error: orgError } = await supabase
-      .from('organisations')
-      .insert({
+    // Create org + user via server API (bypasses RLS for initial setup)
+    const res = await fetch('/api/create-org', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         name: form.orgName.trim(),
         country: form.country,
         industry: form.industry || null,
-        logo_url: logoUrl,
-        trial_ends_at: trialEnds.toISOString(),
-        subscription_status: 'trial',
-      })
-      .select()
-      .single()
-
-    if (orgError) { setError(orgError.message); setLoading(false); return }
-
-    // Create user profile
-    await supabase.from('users').upsert({
-      id: user.id,
-      org_id: org.id,
-      phone: user.phone,
-      role: 'admin',
+        logoUrl,
+      }),
     })
+
+    const result = await res.json()
+    if (!res.ok) { setError(result.error || 'Something went wrong'); setLoading(false); return }
 
     router.push('/dashboard')
   }
