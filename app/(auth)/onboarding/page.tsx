@@ -132,6 +132,23 @@ export default function OnboardingPage() {
               >
                 <option value="AU">Australia</option>
                 <option value="NZ">New Zealand</option>
+                <option value="US">United States</option>
+                <option value="GB">United Kingdom</option>
+                <option value="CA">Canada</option>
+                <option value="ZA">South Africa</option>
+                <option value="NG">Nigeria</option>
+                <option value="AE">United Arab Emirates</option>
+                <option value="SA">Saudi Arabia</option>
+                <option value="QA">Qatar</option>
+                <option value="PG">Papua New Guinea</option>
+                <option value="ID">Indonesia</option>
+                <option value="PH">Philippines</option>
+                <option value="IN">India</option>
+                <option value="CL">Chile</option>
+                <option value="PE">Peru</option>
+                <option value="BR">Brazil</option>
+                <option value="MX">Mexico</option>
+                <option value="OTHER">Other</option>
               </select>
             </div>
             {error && <p className="text-sm" style={{ color: 'var(--red)' }}>{error}</p>}
