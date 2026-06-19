@@ -101,7 +101,7 @@ export default function NewJourneyPage() {
 
       const { data: ss } = await supabase
         .from('users')
-        .select('id, full_name, phone')
+        .select('id, name, phone')
         .eq('org_id', profile.org_id)
       setStaff(ss || [])
 
@@ -325,7 +325,7 @@ export default function NewJourneyPage() {
               <select className="input" value={driverId} onChange={e => setDriverId(e.target.value)}>
                 <option value="">Select driver…</option>
                 {staff.map(s => (
-                  <option key={s.id} value={s.id}>{s.full_name} ({s.phone})</option>
+                  <option key={s.id} value={s.id}>{s.name || s.phone}</option>
                 ))}
               </select>
             </div>
