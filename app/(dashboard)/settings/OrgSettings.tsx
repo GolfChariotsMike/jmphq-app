@@ -64,9 +64,15 @@ export default function OrgSettings({ org, orgId, userId }: { org: any; orgId: s
     const file = e.target.files?.[0]
     if (!file) return
     setLoading(true)
+    setError('')
     try {
       const url = await uploadLogo(file)
       setLogoUrl(url)
+      // Auto-save logo_url immediately
+      await supabase.from('organisations').update({ logo_url: url }).eq('id', orgId)
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
+      router.refresh()
     } catch (e: any) {
       setError(e.message)
     }
