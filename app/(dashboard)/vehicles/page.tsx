@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Car, QrCode } from 'lucide-react'
+import { Plus, Car, QrCode, Pencil } from 'lucide-react'
 
 export default function VehiclesPage() {
   const supabase = createClient()
@@ -72,11 +72,18 @@ export default function VehiclesPage() {
                   </div>
                 </div>
               </div>
-              <Link href={`/vehicles/${v.id}/qr`}
-                className="flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-xl transition-all hover:opacity-80"
-                style={{ background: 'rgba(255,107,43,0.10)', color: 'var(--accent)' }}>
-                <QrCode size={14} /> QR sticker
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link href={`/vehicles/${v.id}/edit`}
+                  className="flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-xl transition-all hover:opacity-80"
+                  style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}>
+                  <Pencil size={14} /> Edit
+                </Link>
+                <Link href={`/vehicles/${v.id}/qr`}
+                  className="flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-xl transition-all hover:opacity-80"
+                  style={{ background: 'rgba(255,107,43,0.10)', color: 'var(--accent)' }}>
+                  <QrCode size={14} /> QR sticker
+                </Link>
+              </div>
             </div>
           ))}
         </div>
