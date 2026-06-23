@@ -135,7 +135,7 @@ export default function ScanFlow({ vehicleId }: { vehicleId: string }) {
 
       if (allApproved.length === 1) {
         setSelectedJourney(allApproved[0])
-        await Promise.all([loadPassengers(allApproved[0].id), loadChecklist(v.org_id)])
+        await Promise.all([loadPassengers(allApproved[0].id), loadChecklist(orgId)])
         setScenario('confirm_start')
       } else {
         setJourneys(allApproved)
@@ -146,7 +146,7 @@ export default function ScanFlow({ vehicleId }: { vehicleId: string }) {
 
     if (approvedJourneys.length === 1) {
       setSelectedJourney(approvedJourneys[0])
-      await Promise.all([loadPassengers(approvedJourneys[0].id), loadChecklist(v.org_id)])
+      await Promise.all([loadPassengers(approvedJourneys[0].id), loadChecklist(orgId)])
       setScenario('confirm_start')
     } else {
       setJourneys(approvedJourneys)

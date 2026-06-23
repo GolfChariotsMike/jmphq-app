@@ -31,7 +31,7 @@ function btn(url: string, label: string, color = '#FF6B2B') {
 }
 
 export async function sendApprovalRequest({
-  to, approverName, driverName, purpose, from, to: dest, departAt, journeyId,
+  to, approverName, driverName, purpose, from, destination, departAt, journeyId,
 }: {
   to: string; approverName: string; driverName: string; purpose: string
   from: string; destination: string; departAt: string | null; journeyId: string
