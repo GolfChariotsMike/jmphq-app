@@ -820,69 +820,6 @@ export default function NewJourneyPage() {
           </>
         )}
 
-        {false && step === 4 && (
-          <>
-            {checklists.map(item => {
-                const ans = checklistAnswers[item.id] || { response: null, notes: '' }
-                return (
-                  <div key={item.id} className="p-4 rounded-xl" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{item.label}</p>
-                        {item.is_blocking && (
-                          <span className="inline-flex items-center gap-1 text-xs mt-1" style={{ color: 'var(--red)' }}>
-                            <AlertTriangle size={11} /> Blocking item
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        {[true, false].map(val => (
-                          <button
-                            key={String(val)}
-                            type="button"
-                            onClick={() => setChecklistAnswers(prev => ({
-                              ...prev,
-                              [item.id]: { ...prev[item.id], response: val }
-                            }))}
-                            className="px-3 py-1.5 rounded-lg text-xs font-semibold border"
-                            style={{
-                              background: ans.response === val ? (val ? 'var(--green)' : 'var(--red)') : 'transparent',
-                              borderColor: ans.response === val ? (val ? 'var(--green)' : 'var(--red)') : 'var(--border)',
-                              color: ans.response === val ? '#fff' : 'var(--text-muted)',
-                            }}
-                          >
-                            {val ? 'Yes' : 'No'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {ans.response === false && (
-                      <div>
-                        {item.is_blocking && (
-                          <div className="mb-2 p-2 rounded-lg text-xs" style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--red)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                            ⚠️ This item must be resolved before the journey can proceed.
-                          </div>
-                        )}
-                        <label className="label">Notes (required) *</label>
-                        <textarea
-                          className="input"
-                          rows={2}
-                          placeholder="Explain the issue..."
-                          value={ans.notes}
-                          onChange={e => setChecklistAnswers(prev => ({
-                            ...prev,
-                            [item.id]: { ...prev[item.id], notes: e.target.value }
-                          }))}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )
-              })
-            )}
-          </>
-        )}
 
         {step === 5 && (
           <>
