@@ -17,7 +17,7 @@ const STEPS = [
   'Fatigue & Submit',
 ]
 
-interface Vehicle { id: string; registration: string; make: string; model: string }
+interface Vehicle { id: string; registration: string; make: string; model: string; max_passengers: number }
 interface StaffMember { id: string; name: string; phone: string }
 interface ChecklistItem { id: string; item_key: string; label: string; is_blocking: boolean; is_active: boolean }
 interface Passenger {
@@ -118,7 +118,7 @@ export default function NewJourneyPage() {
 
       const { data: vs } = await supabase
         .from('vehicles')
-        .select('id, registration, make, model')
+        .select('id, registration, make, model, max_passengers')
         .eq('org_id', profile.org_id)
         .eq('status', 'available')
       setVehicles(vs || [])
@@ -329,7 +329,9 @@ export default function NewJourneyPage() {
   }
 
   function addPassenger() {
-    if (passengers.length >= 5) return
+    const selectedVehicle = vehicles.find(v => v.id === vehicleId)
+    const maxPax = selectedVehicle?.max_passengers ?? 5
+    if (passengers.length >= maxPax) return
     setPassengers(p => [...p, { full_name: '', phone: '', next_of_kin_name: '', next_of_kin_phone: '', signature: '' }])
   }
 
@@ -545,14 +547,26 @@ export default function NewJourneyPage() {
 
         {step === 2 && (
           <>
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold">Passengers ({passengers.length}/5)</p>
-              {passengers.length < 5 && (
-                <button type="button" onClick={addPassenger} className="flex items-center gap-1 text-sm" style={{ color: 'var(--accent)' }}>
-                  <Plus size={14} /> Add
-                </button>
-              )}
-            </div>
+            {(() => {
+              const selectedVehicle = vehicles.find(v => v.id === vehicleId)
+              const maxPax = selectedVehicle?.max_passengers ?? 5
+              const atLimit = passengers.length >= maxPax
+              return (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">Passengers ({passengers.length}/{maxPax})</p>
+                    {selectedVehicle && <p className="text-xs mt-0.5" style={{ color: 'var(--text-dim)' }}>{selectedVehicle.make} {selectedVehicle.model} · max {maxPax} passengers</p>}
+                  </div>
+                  {!atLimit ? (
+                    <button type="button" onClick={addPassenger} className="flex items-center gap-1 text-sm" style={{ color: 'var(--accent)' }}>
+                      <Plus size={14} /> Add
+                    </button>
+                  ) : (
+                    <span className="text-xs px-2 py-1 rounded-lg" style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--red)' }}>Vehicle full</span>
+                  )}
+                </div>
+              )
+            })()}
 
             {passengers.map((p, i) => (
               <div key={i} className="p-4 rounded-xl space-y-3" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>

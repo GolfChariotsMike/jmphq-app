@@ -16,7 +16,7 @@ export default function EditVehiclePage() {
   const [error, setError] = useState('')
   const [pageLoading, setPageLoading] = useState(true)
   const [form, setForm] = useState({
-    make: '', model: '', registration: '', colour: '', year: '', vehicle_type: 'owned',
+    make: '', model: '', registration: '', colour: '', year: '', vehicle_type: 'owned', max_passengers: '4',
   })
 
   useEffect(() => {
@@ -32,6 +32,7 @@ export default function EditVehiclePage() {
         colour: data.colour || '',
         year: data.year ? String(data.year) : '',
         vehicle_type: data.vehicle_type || 'owned',
+        max_passengers: data.max_passengers != null ? String(data.max_passengers) : '4',
       })
       setPageLoading(false)
     }
@@ -60,6 +61,7 @@ export default function EditVehiclePage() {
         colour: form.colour.trim() || null,
         year: form.year ? parseInt(form.year) : null,
         vehicle_type: form.vehicle_type,
+        max_passengers: form.max_passengers ? parseInt(form.max_passengers) : 4,
       })
       .eq('id', id)
 
@@ -134,6 +136,11 @@ export default function EditVehiclePage() {
                 <option value="leased">Leased</option>
                 <option value="hired">Hired</option>
               </select>
+            </div>
+            <div>
+              <label className="label">Max passengers</label>
+              <input className="input" type="number" min="0" max="20" value={form.max_passengers} onChange={e => set('max_passengers', e.target.value)} placeholder="4" />
+              <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>Excludes the driver</p>
             </div>
           </div>
 
