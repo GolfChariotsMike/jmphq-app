@@ -107,7 +107,11 @@ export async function GET(req: NextRequest) {
       expectedAt = `${arrive.getUTCFullYear()}-${pad(arrive.getUTCMonth()+1)}-${pad(arrive.getUTCDate())}T${pad(arrive.getUTCHours())}:${pad(arrive.getUTCMinutes())}`
     }
 
-    checkpoints.push({ name, expectedAt, lat: closest.lat, lng: closest.lng, label: mark.label })
+    // Deduplicate — skip if same location already added (sparse steps in remote areas)
+    const alreadyAdded = checkpoints.some(cp => cp.lat === closest.lat && cp.lng === closest.lng)
+    if (!alreadyAdded) {
+      checkpoints.push({ name, expectedAt, lat: closest.lat, lng: closest.lng, label: mark.label })
+    }
   }
 
   return NextResponse.json({ checkpoints, totalHours: Math.round(totalHours * 10) / 10 })
