@@ -8,6 +8,11 @@ import LocationInput from '@/components/LocationInput'
 import { useDirections } from '@/lib/useDirections'
 import { ChevronRight, ChevronLeft, Plus, Trash2, AlertTriangle } from 'lucide-react'
 
+function toLocalDateTimeString(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
 const STEPS = [
   'Basic Info',
   'Route Planning',
@@ -76,7 +81,7 @@ export default function NewJourneyPage() {
     if (!directionsInfo?.durationSeconds || !outDepart) return
     const depart = new Date(outDepart)
     depart.setSeconds(depart.getSeconds() + directionsInfo.durationSeconds)
-    setOutArrive(depart.toISOString().slice(0, 16))
+    setOutArrive(toLocalDateTimeString(depart))
   }, [outDepart, directionsInfo?.durationSeconds])
 
   useDirections(outFrom, outTo, handleDirectionsResult)

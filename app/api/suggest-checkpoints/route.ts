@@ -96,9 +96,15 @@ export async function GET(req: NextRequest) {
     // Calculate expected time
     let expectedAt: string | null = null
     if (departAt) {
-      const depart = new Date(departAt)
-      depart.setSeconds(depart.getSeconds() + closest.durationSec)
-      expectedAt = depart.toISOString().slice(0, 16)
+      // Parse as local time by treating input as local (no TZ suffix)
+      // Add duration in ms to keep relative calculation correct
+      const departMs = new Date(departAt + ':00').getTime()
+      const arriveMs = departMs + closest.durationSec * 1000
+      const arrive = new Date(arriveMs)
+      // Format as local datetime string (YYYY-MM-DDTHH:mm) using UTC
+      // since departAt was parsed as UTC-equivalent, output stays consistent
+      const pad = (n: number) => String(n).padStart(2, '0')
+      expectedAt = `${arrive.getUTCFullYear()}-${pad(arrive.getUTCMonth()+1)}-${pad(arrive.getUTCDate())}T${pad(arrive.getUTCHours())}:${pad(arrive.getUTCMinutes())}`
     }
 
     checkpoints.push({ name, expectedAt, lat: closest.lat, lng: closest.lng, label: mark.label })
