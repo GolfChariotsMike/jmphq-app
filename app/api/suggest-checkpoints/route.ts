@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
 interface Checkpoint {
   name: string
@@ -13,7 +14,19 @@ export async function GET(req: NextRequest) {
   const origin = searchParams.get('origin')
   const destination = searchParams.get('destination')
   const departAt = searchParams.get('departAt') // ISO string
-  const intervalHours = parseFloat(searchParams.get('intervalHours') || '3')
+  const orgId = searchParams.get('orgId')
+  let intervalHours = parseFloat(searchParams.get('intervalHours') || '5')
+
+  // Pull interval from org policy if orgId provided
+  if (orgId) {
+    try {
+      const supabase = await createClient()
+      const { data: org } = await supabase.from('organisations').select('journey_policies').eq('id', orgId).single()
+      if (org?.journey_policies?.max_continuous_drive_hours) {
+        intervalHours = org.journey_policies.max_continuous_drive_hours
+      }
+    } catch {}
+  }
 
   if (!origin || !destination) {
     return NextResponse.json({ checkpoints: [] })

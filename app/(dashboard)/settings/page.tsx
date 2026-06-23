@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import OrgSettings from './OrgSettings'
 import ChecklistSettings from './ChecklistSettings'
+import PolicySettings from './PolicySettings'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -24,6 +25,20 @@ export default async function SettingsPage() {
 
   const org = profile.organisations as any
 
+  const defaultPolicy = {
+    country: 'AU' as const,
+    max_continuous_drive_hours: 5,
+    min_break_minutes: 20,
+    min_consecutive_break_minutes: 10,
+    max_daily_drive_hours: 10,
+    jmp_required_km: 300,
+    jmp_required_unsealed: true,
+    jmp_required_adverse_weather: true,
+    min_water_litres: 10,
+    checkin_interval_hours: 3,
+  }
+  const policy = { ...defaultPolicy, ...(org?.journey_policies || {}) }
+
   return (
     <div className="max-w-2xl">
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
@@ -31,6 +46,8 @@ export default async function SettingsPage() {
       <OrgSettings org={org} orgId={profile.org_id} userId={user.id} />
 
       <ChecklistSettings items={checklistItems || []} orgId={profile.org_id} />
+
+      <PolicySettings orgId={profile.org_id} policy={policy} />
 
       {/* Notifications placeholder */}
       <div className="card mt-6">

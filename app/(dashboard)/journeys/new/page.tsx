@@ -348,7 +348,7 @@ export default function NewJourneyPage() {
     try {
       const params = new URLSearchParams({ origin: outFrom, destination: outTo })
       if (outDepart) params.set('departAt', outDepart)
-      params.set('intervalHours', '3')
+      if (orgId) params.set('orgId', orgId)
       const res = await fetch(`/api/suggest-checkpoints?${params}`)
       const data = await res.json()
       setSuggestedCheckpoints(data.checkpoints || [])
