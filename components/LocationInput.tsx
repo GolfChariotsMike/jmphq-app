@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 interface Props {
   value: string
@@ -8,70 +8,82 @@ interface Props {
   className?: string
 }
 
-declare global {
-  interface Window { google: any; __gmapsLoading?: boolean; __gmapsLoaded?: boolean }
-}
-
-function loadGoogleMaps(apiKey: string): Promise<void> {
-  return new Promise((resolve) => {
-    if (window.__gmapsLoaded) { resolve(); return }
-    if (window.__gmapsLoading) {
-      const iv = setInterval(() => {
-        if (window.__gmapsLoaded) { clearInterval(iv); resolve() }
-      }, 100)
-      return
-    }
-    window.__gmapsLoading = true
-    const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=__gmapsInit`
-    script.async = true
-    ;(window as any).__gmapsInit = () => {
-      window.__gmapsLoaded = true
-      resolve()
-    }
-    document.head.appendChild(script)
-  })
-}
+interface Suggestion { text: string; placeId: string }
 
 export default function LocationInput({ value, onChange, placeholder, className }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const acRef = useRef<any>(null)
   const [inputVal, setInputVal] = useState(value)
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || ''
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+  const [open, setOpen] = useState(false)
+  const timerRef = useRef<any>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  // Sync external value changes (e.g. edit mode pre-fill)
-  useEffect(() => {
-    setInputVal(value)
-  }, [value])
+  useEffect(() => { setInputVal(value) }, [value])
 
   useEffect(() => {
-    if (!apiKey || !inputRef.current) return
-    loadGoogleMaps(apiKey).then(() => {
-      if (!inputRef.current || acRef.current) return
-      acRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
-        types: ['geocode'],
-        componentRestrictions: { country: ['au', 'nz'] },
-      })
-      acRef.current.addListener('place_changed', () => {
-        const place = acRef.current.getPlace()
-        const addr = place.formatted_address || place.name || ''
-        setInputVal(addr)
-        onChange(addr)
-      })
-    })
-  }, [apiKey])
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  function handleChange(val: string) {
+    setInputVal(val)
+    onChange(val)
+    clearTimeout(timerRef.current)
+    if (val.length < 2) { setSuggestions([]); setOpen(false); return }
+    timerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/places?input=${encodeURIComponent(val)}`)
+        const data = await res.json()
+        setSuggestions(data.suggestions || [])
+        setOpen(data.suggestions?.length > 0)
+      } catch { setSuggestions([]); setOpen(false) }
+    }, 300)
+  }
+
+  function handleSelect(s: Suggestion) {
+    setInputVal(s.text)
+    onChange(s.text)
+    setSuggestions([])
+    setOpen(false)
+  }
 
   return (
-    <input
-      ref={inputRef}
-      className={className || 'input'}
-      placeholder={placeholder}
-      value={inputVal}
-      onChange={e => {
-        setInputVal(e.target.value)
-        onChange(e.target.value)
-      }}
-      autoComplete="off"
-    />
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      <input
+        className={className || 'input'}
+        placeholder={placeholder}
+        value={inputVal}
+        onChange={e => handleChange(e.target.value)}
+        onFocus={() => suggestions.length > 0 && setOpen(true)}
+        autoComplete="off"
+      />
+      {open && suggestions.length > 0 && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+          background: 'var(--surface)', border: '1px solid var(--border-bright)',
+          borderRadius: 12, marginTop: 4, overflow: 'hidden',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+        }}>
+          {suggestions.map((s, i) => (
+            <div
+              key={s.placeId || i}
+              onMouseDown={() => handleSelect(s)}
+              style={{
+                padding: '10px 14px', cursor: 'pointer', fontSize: 14,
+                borderBottom: i < suggestions.length - 1 ? '1px solid var(--border)' : 'none',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              📍 {s.text}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
