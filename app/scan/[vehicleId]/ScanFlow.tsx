@@ -22,6 +22,8 @@ export default function ScanFlow({ vehicleId }: { vehicleId: string }) {
   const [nextCheckpoint, setNextCheckpoint] = useState<any>(null)
   const [message, setMessage] = useState('')
   const [passengers, setPassengers] = useState<any[]>([])
+  const [checklistItems, setChecklistItems] = useState<any[]>([])
+  const [checklistAnswers, setChecklistAnswers] = useState<Record<string, boolean>>({})
   const [passengersConfirmed, setPassengersConfirmed] = useState(false)
   const [driverSignature, setDriverSignature] = useState('')
 
@@ -133,7 +135,7 @@ export default function ScanFlow({ vehicleId }: { vehicleId: string }) {
 
       if (allApproved.length === 1) {
         setSelectedJourney(allApproved[0])
-        await loadPassengers(allApproved[0].id)
+        await Promise.all([loadPassengers(allApproved[0].id), loadChecklist(v.org_id)])
         setScenario('confirm_start')
       } else {
         setJourneys(allApproved)
@@ -144,12 +146,26 @@ export default function ScanFlow({ vehicleId }: { vehicleId: string }) {
 
     if (approvedJourneys.length === 1) {
       setSelectedJourney(approvedJourneys[0])
-      await loadPassengers(approvedJourneys[0].id)
+      await Promise.all([loadPassengers(approvedJourneys[0].id), loadChecklist(v.org_id)])
       setScenario('confirm_start')
     } else {
       setJourneys(approvedJourneys)
       setScenario('select_journey')
     }
+  }
+
+  async function loadChecklist(orgId: string) {
+    const { data } = await supabase
+      .from('checklist_config')
+      .select('*')
+      .eq('org_id', orgId)
+      .eq('is_active', true)
+      .order('sort_order')
+    setChecklistItems(data || [])
+    // pre-set all to false
+    const answers: Record<string, boolean> = {}
+    ;(data || []).forEach((item: any) => { answers[item.id] = false })
+    setChecklistAnswers(answers)
   }
 
   async function loadPassengers(journeyId: string) {
@@ -177,11 +193,25 @@ export default function ScanFlow({ vehicleId }: { vehicleId: string }) {
         await supabase.from('journeys').update({ driver_signature_url: urlData?.publicUrl }).eq('id', selectedJourney.id)
       }
 
+      // Save checklist responses
+      const clData = checklistItems.map((item: any) => ({
+        journey_id: selectedJourney.id,
+        checklist_config_id: item.id,
+        item_key: item.item_key,
+        label: item.label,
+        response: checklistAnswers[item.id] ?? false,
+        notes: null,
+      }))
+      if (clData.length > 0) {
+        await supabase.from('journey_checklists').delete().eq('journey_id', selectedJourney.id)
+        await supabase.from('journey_checklists').insert(clData)
+      }
+
       await supabase.from('journey_events').insert({
         journey_id: selectedJourney.id,
         event_type: 'started',
         user_id: userId,
-        notes: `Started via QR scan · ${passengers.length} passenger(s) confirmed present`,
+        notes: `Started via QR scan · ${passengers.length} passenger(s) confirmed present · ${clData.filter(c => c.response).length}/${clData.length} checklist items confirmed`,
       })
 
       const cps = selectedJourney.checkpoints || []
@@ -320,7 +350,7 @@ export default function ScanFlow({ vehicleId }: { vehicleId: string }) {
                 {journeys.map(j => (
                   <button
                     key={j.id}
-                    onClick={async () => { setSelectedJourney(j); await loadPassengers(j.id); setScenario('confirm_start') }}
+                    onClick={async () => { setSelectedJourney(j); await Promise.all([loadPassengers(j.id), loadChecklist(vehicle.org_id)]); setScenario('confirm_start') }}
                     className="w-full text-left p-3 rounded-xl border transition-all hover:border-white/20"
                     style={{ background: 'var(--surface-2)', borderColor: 'var(--border)' }}
                   >
@@ -376,23 +406,53 @@ export default function ScanFlow({ vehicleId }: { vehicleId: string }) {
                 </label>
               </div>
 
+              {/* Pre-departure checklist */}
+              {checklistItems.length > 0 && (
+                <div className="rounded-xl p-3 mb-4" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                  <p className="text-xs font-semibold mb-3" style={{ color: 'var(--text-muted)' }}>PRE-DEPARTURE CHECKLIST</p>
+                  <div className="space-y-2">
+                    {checklistItems.map((item: any) => (
+                      <label key={item.id} className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checklistAnswers[item.id] ?? false}
+                          onChange={e => setChecklistAnswers(prev => ({ ...prev, [item.id]: e.target.checked }))}
+                          style={{ marginTop: 2, accentColor: item.is_blocking ? 'var(--red)' : 'var(--accent)' }}
+                        />
+                        <span className="text-sm">{item.label}{item.is_blocking && <span className="text-xs ml-1.5" style={{ color: 'var(--red)' }}>⚠️ required</span>}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Driver signature */}
               <div className="mb-4">
                 <SignaturePad label="Driver signature *" onSave={setDriverSignature} />
               </div>
 
-              <button
-                className="btn-primary w-full"
-                onClick={startJourney}
-                disabled={loading || !passengersConfirmed || !driverSignature}
-              >
-                {loading ? 'Starting…' : 'Confirm & Start Journey'}
-              </button>
-              {(!passengersConfirmed || !driverSignature) && (
-                <p className="text-xs text-center mt-2" style={{ color: 'var(--text-dim)' }}>
-                  {!passengersConfirmed ? 'Confirm passengers to continue' : 'Driver signature required'}
-                </p>
-              )}
+              {(() => {
+                const blockingUnticked = checklistItems.filter((item: any) => item.is_blocking && !checklistAnswers[item.id])
+                const canStart = passengersConfirmed && !!driverSignature && blockingUnticked.length === 0
+                const hint = !passengersConfirmed ? 'Confirm passengers to continue'
+                  : !driverSignature ? 'Driver signature required'
+                  : blockingUnticked.length > 0 ? `Required checklist items not confirmed`
+                  : null
+                return (
+                  <>
+                    <button
+                      className="btn-primary w-full"
+                      onClick={startJourney}
+                      disabled={loading || !canStart}
+                    >
+                      {loading ? 'Starting…' : 'Confirm & Start Journey'}
+                    </button>
+                    {hint && (
+                      <p className="text-xs text-center mt-2" style={{ color: 'var(--text-dim)' }}>{hint}</p>
+                    )}
+                  </>
+                )
+              })()}
             </div>
           )}
 

@@ -18,7 +18,7 @@ const STEPS = [
   'Route Planning',
   'Passengers',
   'Checkpoints',
-  'Pre-Journey Checklist',
+  'Requirements',
   'Fatigue & Submit',
 ]
 
@@ -800,13 +800,39 @@ export default function NewJourneyPage() {
 
         {step === 4 && (
           <>
+            <div className="rounded-xl p-4 mb-2" style={{ background: 'rgba(255,107,43,0.08)', border: '1px solid rgba(255,107,43,0.25)' }}>
+              <p className="text-sm font-semibold mb-1" style={{ color: 'var(--accent)' }}>📋 Before you depart</p>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                Make sure the following are ready before the driver scans to start the journey. The driver will confirm each item at that point.
+              </p>
+            </div>
+
             {checklists.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No checklist items configured.</p>
                 <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>Go to Settings → Checklist to add items.</p>
               </div>
             ) : (
-              checklists.map(item => {
+              <div className="space-y-2">
+                {checklists.filter(item => item.is_active).map((item, i) => (
+                  <div key={item.id} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                    <span className="text-base mt-0.5">{'📦🔋💧🍱🩺🗺️🛣️🚗⚡🌦️'.split('')[i % 10]}</span>
+                    <div>
+                      <p className="text-sm">{item.label}</p>
+                      {item.is_blocking && (
+                        <span className="text-xs" style={{ color: 'var(--red)' }}>⚠️ Required — journey cannot start without this</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {false && step === 4 && (
+          <>
+            {checklists.map(item => {
                 const ans = checklistAnswers[item.id] || { response: null, notes: '' }
                 return (
                   <div key={item.id} className="p-4 rounded-xl" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
