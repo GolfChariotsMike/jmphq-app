@@ -34,7 +34,7 @@ export async function sendApprovalRequest({
   to, approverName, driverName, purpose, from, to: dest, departAt, journeyId,
 }: {
   to: string; approverName: string; driverName: string; purpose: string
-  from: string; to: dest; departAt: string | null; journeyId: string
+  from: string; destination: string; departAt: string | null; journeyId: string
 }) {
   const url = `${APP_URL}/journeys/${journeyId}`
   const depart = departAt ? new Date(departAt).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' }) : 'TBC'
@@ -44,7 +44,7 @@ export async function sendApprovalRequest({
     <table style="width:100%;border-collapse:collapse;font-size:14px">
       <tr><td style="padding:8px 0;color:#888;width:120px">Driver</td><td style="padding:8px 0">${driverName}</td></tr>
       <tr><td style="padding:8px 0;color:#888">Purpose</td><td style="padding:8px 0">${purpose}</td></tr>
-      <tr><td style="padding:8px 0;color:#888">Route</td><td style="padding:8px 0">${from} → ${dest}</td></tr>
+      <tr><td style="padding:8px 0;color:#888">Route</td><td style="padding:8px 0">${from} → ${destination}</td></tr>
       <tr><td style="padding:8px 0;color:#888">Departure</td><td style="padding:8px 0">${depart}</td></tr>
     </table>
     ${btn(url, 'Review & Approve →')}

@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       driverName: driver?.name || 'Unknown driver',
       purpose: journey.purpose,
       from: journey.outbound_from,
-      to: journey.outbound_to,
+      destination: journey.outbound_to,
       departAt: journey.outbound_depart_at,
       journeyId,
     })
