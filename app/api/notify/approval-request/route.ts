@@ -11,18 +11,21 @@ export async function POST(req: NextRequest) {
   // Get journey + driver details
   const { data: journey } = await supabase
     .from('journeys')
-    .select('*, driver:driver_id(name, email), org:org_id(id)')
+    .select('*, driver:driver_id(name, email), org:org_id(id, approval_notify_roles)')
     .eq('id', journeyId)
     .single()
 
   if (!journey) return NextResponse.json({ error: 'Journey not found' }, { status: 404 })
 
-  // Get all admins + managers in the org to notify
+  const org = journey.org as any
+  const notifyRoles: string[] = org?.approval_notify_roles || ['admin', 'manager']
+
+  // Get all users in the org with a notify role who have an email
   const { data: approvers } = await supabase
     .from('users')
     .select('name, email')
-    .eq('org_id', journey.org.id)
-    .in('role', ['admin', 'manager'])
+    .eq('org_id', org.id)
+    .in('role', notifyRoles)
     .not('email', 'is', null)
 
   if (!approvers?.length) return NextResponse.json({ ok: true, note: 'No approvers found' })

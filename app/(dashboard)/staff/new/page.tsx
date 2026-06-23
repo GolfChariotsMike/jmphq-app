@@ -15,6 +15,7 @@ export default function NewStaffPage() {
     full_name: '',
     name: '',
     phone: '',
+    email: '',
     role: 'driver',
     next_of_kin_name: '',
     next_of_kin_phone: '',
@@ -51,6 +52,7 @@ export default function NewStaffPage() {
         full_name: form.full_name.trim(),
         name: form.full_name.trim(),
         phone: formattedPhone,
+        email: form.email.trim() || null,
         role: form.role,
         next_of_kin_name: form.next_of_kin_name.trim() || null,
         next_of_kin_phone: form.next_of_kin_phone.trim() || null,
@@ -80,10 +82,17 @@ export default function NewStaffPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="label">Full name *</label>
-            <input className="input" placeholder="Jane Smith" value={form.full_name}
-              onChange={e => set('full_name', e.target.value)} />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Full name *</label>
+              <input className="input" placeholder="Jane Smith" value={form.full_name}
+                onChange={e => set('full_name', e.target.value)} />
+            </div>
+            <div>
+              <label className="label">Email</label>
+              <input className="input" type="email" placeholder="jane@company.com" value={form.email}
+                onChange={e => set('email', e.target.value)} />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -96,6 +105,7 @@ export default function NewStaffPage() {
               <select className="input" value={form.role} onChange={e => set('role', e.target.value)}>
                 <option value="driver">Driver</option>
                 <option value="supervisor">Supervisor</option>
+                <option value="manager">Manager</option>
                 <option value="admin">Admin</option>
               </select>
             </div>

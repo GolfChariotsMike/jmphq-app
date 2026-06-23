@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import OrgSettings from './OrgSettings'
 import ChecklistSettings from './ChecklistSettings'
 import PolicySettings from './PolicySettings'
+import NotificationSettings from './NotificationSettings'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -37,6 +38,7 @@ export default async function SettingsPage() {
     checkin_interval_hours: 3,
   }
   const policy = { ...defaultPolicy, ...(org?.journey_policies || {}) }
+  const notifyRoles: string[] = org?.approval_notify_roles || ['admin', 'manager']
 
   return (
     <div className="max-w-2xl">
@@ -47,6 +49,8 @@ export default async function SettingsPage() {
       <ChecklistSettings items={checklistItems || []} orgId={profile.org_id} />
 
       <PolicySettings orgId={profile.org_id} policy={policy} />
+
+      <NotificationSettings orgId={profile.org_id} notifyRoles={notifyRoles} />
 
       {/* Notifications placeholder */}
       <div className="card mt-6">
