@@ -36,7 +36,7 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
     .select(`
       *,
       vehicles(id, make, model, name, registration),
-      driver:users!journeys_driver_id_fkey(id, full_name, phone)
+      driver:driver_id(id, name, phone)
     `)
     .eq('id', id)
     .eq('org_id', profile.org_id)
@@ -68,7 +68,7 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
 
   const { data: approvals } = await supabase
     .from('approvals')
-    .select('*, approver:users!approvals_approver_id_fkey(full_name)')
+    .select('*, approver:approver_id(name)')
     .eq('journey_id', id)
     .order('created_at', { ascending: false })
 
@@ -78,6 +78,7 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
 
   const vehicle = journey.vehicles as any
   const driver = journey.driver as any
+  // driver uses 'name' column not 'full_name'
 
   return (
     <div className="max-w-3xl">
@@ -131,7 +132,7 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
           <p className="text-xs font-semibold mb-3" style={{ color: 'var(--text-muted)' }}>JOURNEY INFO</p>
           <div className="space-y-2 text-sm">
             <Row label="Vehicle" value={vehicle ? `${vehicle.make} ${vehicle.model} (${vehicle.registration})` : '—'} />
-            <Row label="Driver" value={driver?.full_name || '—'} />
+            <Row label="Driver" value={driver?.name || '—'} />
             <Row label="Radio" value={journey.radio_channel || '—'} />
             <Row label="Type" value={journey.journey_type === 'lead_convoy' ? 'Lead convoy' : 'Single vehicle'} />
             {journey.route_distance_km && <Row label="Distance" value={`${journey.route_distance_km} km`} />}
@@ -248,7 +249,7 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
                   {a.status === 'approved' ? '✓ Approved' : '✗ Rejected'}
                 </p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                  by {(a.approver as any)?.full_name || 'Unknown'} · {new Date(a.created_at).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' })}
+                  by {(a.approver as any)?.name || 'Unknown'} · {new Date(a.created_at).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' })}
                 </p>
                 {a.notes && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Note: {a.notes}</p>}
               </div>
