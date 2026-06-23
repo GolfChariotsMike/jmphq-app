@@ -51,6 +51,13 @@ export default function JourneyActions({ journeyId, userId, status }: Props) {
         user_id: userId,
       })
 
+      // Notify driver (fire and forget)
+      fetch('/api/notify/approval-result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ journeyId, status: 'approved' }),
+      }).catch(() => {})
+
       router.refresh()
     } catch (e: any) {
       setError(e.message)
@@ -79,6 +86,13 @@ export default function JourneyActions({ journeyId, userId, status }: Props) {
         user_id: userId,
         metadata: { notes: rejectNotes },
       })
+
+      // Notify driver (fire and forget)
+      fetch('/api/notify/approval-result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ journeyId, status: 'rejected', notes: rejectNotes }),
+      }).catch(() => {})
 
       router.refresh()
     } catch (e: any) {

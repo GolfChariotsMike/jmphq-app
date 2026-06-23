@@ -319,6 +319,13 @@ export default function NewJourneyPage() {
         user_id: userId,
       })
 
+      // Notify approvers (fire and forget)
+      fetch('/api/notify/approval-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ journeyId: jid }),
+      }).catch(() => {})
+
       router.push('/journeys')
     } catch (e: any) {
       setError(e.message || 'Something went wrong')
