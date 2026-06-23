@@ -63,6 +63,7 @@ export default function NewJourneyPage() {
   const [retArrive, setRetArrive] = useState('')
   const [distanceKm, setDistanceKm] = useState('')
   const [directionsInfo, setDirectionsInfo] = useState<{ durationText: string } | null>(null)
+  const [showMapModal, setShowMapModal] = useState(false)
 
   const handleDirectionsResult = useCallback((result: any) => {
     if (!result) return
@@ -465,9 +466,45 @@ export default function NewJourneyPage() {
             )}
 
             {directionsInfo && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm" style={{ background: 'rgba(255,107,43,0.08)', border: '1px solid rgba(255,107,43,0.2)', color: 'var(--accent)' }}>
-                🗺️ Route calculated: <strong>{distanceKm} km</strong> · est. <strong>{directionsInfo.durationText}</strong>
-              </div>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowMapModal(true)}
+                  className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-sm text-left transition-all hover:opacity-80"
+                  style={{ background: 'rgba(255,107,43,0.08)', border: '1px solid rgba(255,107,43,0.2)', color: 'var(--accent)', cursor: 'pointer' }}
+                >
+                  🗺️ Route calculated: <strong>{distanceKm} km</strong> · est. <strong>{directionsInfo.durationText}</strong>
+                  <span className="ml-auto text-xs opacity-60">tap to view map ↗</span>
+                </button>
+
+                {showMapModal && (
+                  <div
+                    style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+                    onClick={() => setShowMapModal(false)}
+                  >
+                    <div
+                      style={{ background: 'var(--surface)', borderRadius: 16, overflow: 'hidden', width: '100%', maxWidth: 700, boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
+                        <span style={{ fontWeight: 600, fontSize: 15 }}>🗺️ {outFrom} → {outTo}</span>
+                        <button type="button" onClick={() => setShowMapModal(false)} style={{ color: 'var(--text-muted)', fontSize: 20, lineHeight: 1, background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+                      </div>
+                      <iframe
+                        src={`https://maps.google.com/maps?saddr=${encodeURIComponent(outFrom)}&daddr=${encodeURIComponent(outTo)}&output=embed`}
+                        width="100%"
+                        height="420"
+                        style={{ border: 'none', display: 'block' }}
+                        loading="lazy"
+                      />
+                      <div style={{ padding: '10px 16px', fontSize: 13, color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
+                        <span>{distanceKm} km · {directionsInfo.durationText}</span>
+                        <a href={`https://maps.google.com/maps?saddr=${encodeURIComponent(outFrom)}&daddr=${encodeURIComponent(outTo)}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Open in Google Maps ↗</a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             <div>
