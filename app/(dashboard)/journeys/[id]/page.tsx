@@ -35,7 +35,7 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
     .from('journeys')
     .select(`
       *,
-      vehicles(id, make, model, name, registration),
+      vehicles(id, make, model, registration),
       driver:driver_id(id, name, phone)
     `)
     .eq('id', id)
