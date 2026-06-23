@@ -310,7 +310,6 @@ export default function NewJourneyPage() {
         status: 'pending_approval',
         submitted_at: new Date().toISOString(),
       }).eq('id', jid)
-      }
 
       // Log event
       await supabase.from('journey_events').insert({
