@@ -227,6 +227,37 @@ export default function NewJourneyPage() {
       const jid = journeyId
       if (!jid) { setError('Could not save journey'); setLoading(false); return }
 
+      // Save visitors to users table so they appear in future dropdowns
+      for (const p of passengers.filter(p => p.full_name && !p.staff_id)) {
+        // Check if visitor already exists by phone in this org
+        const phone = p.phone?.trim()
+        let existing = null
+        if (phone) {
+          const { data } = await supabase.from('users').select('id').eq('org_id', orgId).eq('phone', phone).maybeSingle()
+          existing = data
+        }
+        if (!existing) {
+          await supabase.from('users').insert({
+            org_id: orgId,
+            name: p.full_name.trim(),
+            full_name: p.full_name.trim(),
+            phone: phone || null,
+            next_of_kin_name: p.next_of_kin_name || null,
+            next_of_kin_phone: p.next_of_kin_phone || null,
+            role: 'visitor',
+            is_active: true,
+          })
+        } else {
+          // Update their NOK details if provided
+          if (p.next_of_kin_name || p.next_of_kin_phone) {
+            await supabase.from('users').update({
+              next_of_kin_name: p.next_of_kin_name || null,
+              next_of_kin_phone: p.next_of_kin_phone || null,
+            }).eq('id', existing.id)
+          }
+        }
+      }
+
       // Save passengers
       const passData = passengers
         .filter(p => p.full_name)
@@ -611,14 +642,28 @@ export default function NewJourneyPage() {
                     value={p.staff_id || ''}
                     onChange={e => selectStaffPassenger(i, e.target.value)}
                   >
-                    <option value="">— Visitor / manual entry —</option>
-                    {staff
-                      .filter(s => s.id !== driverId) // exclude driver
-                      .filter(s => !passengers.some((pp, pi) => pi !== i && pp.staff_id === s.id)) // exclude already added
-                      .map(s => (
-                        <option key={s.id} value={s.id}>{s.name || s.full_name}</option>
-                      ))
-                    }
+                    <option value="">— New visitor (manual entry) —</option>
+                    {(() => {
+                      const available = staff
+                        .filter(s => s.id !== driverId)
+                        .filter(s => !passengers.some((pp, pi) => pi !== i && pp.staff_id === s.id))
+                      const staffMembers = available.filter((s: any) => s.role !== 'visitor')
+                      const visitors = available.filter((s: any) => s.role === 'visitor')
+                      return (
+                        <>
+                          {staffMembers.length > 0 && (
+                            <optgroup label="Staff">
+                              {staffMembers.map(s => <option key={s.id} value={s.id}>{s.name || s.full_name}</option>)}
+                            </optgroup>
+                          )}
+                          {visitors.length > 0 && (
+                            <optgroup label="Previous visitors">
+                              {visitors.map(s => <option key={s.id} value={s.id}>{s.name || s.full_name}{(s as any).phone ? ` · ${(s as any).phone}` : ''}</option>)}
+                            </optgroup>
+                          )}
+                        </>
+                      )
+                    })()}
                   </select>
                   {p.staff_id && (
                     <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>
