@@ -84,6 +84,9 @@ export default function NewJourneyPage() {
   ])
 
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([])
+  const [suggestedCheckpoints, setSuggestedCheckpoints] = useState<any[]>([])
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
+  const [suggestionsLoaded, setSuggestionsLoaded] = useState(false)
 
   const [checklistAnswers, setChecklistAnswers] = useState<Record<string, { response: boolean | null; notes: string }>>({})
 
@@ -300,10 +303,28 @@ export default function NewJourneyPage() {
     setLoading(false)
   }
 
+  async function loadSuggestions() {
+    if (!outFrom || !outTo || suggestionsLoaded) return
+    setLoadingSuggestions(true)
+    try {
+      const params = new URLSearchParams({ origin: outFrom, destination: outTo })
+      if (outDepart) params.set('departAt', outDepart)
+      params.set('intervalHours', '3')
+      const res = await fetch(`/api/suggest-checkpoints?${params}`)
+      const data = await res.json()
+      setSuggestedCheckpoints(data.checkpoints || [])
+      setSuggestionsLoaded(true)
+    } catch {}
+    setLoadingSuggestions(false)
+  }
+
   async function goNext() {
     if (step < STEPS.length - 1) {
       await saveDraft()
-      setStep(s => s + 1)
+      const nextStep = step + 1
+      setStep(nextStep)
+      // Auto-load suggestions when entering checkpoints step
+      if (nextStep === 3) loadSuggestions()
     }
   }
 
@@ -579,7 +600,53 @@ export default function NewJourneyPage() {
               </button>
             </div>
 
-            {checkpoints.length === 0 && (
+            {/* AI Suggestions */}
+            {loadingSuggestions && (
+              <div className="text-sm py-3 text-center" style={{ color: 'var(--text-muted)' }}>⏳ Calculating recommended checkpoints…</div>
+            )}
+
+            {!loadingSuggestions && suggestedCheckpoints.length > 0 && (
+              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,107,43,0.3)', background: 'rgba(255,107,43,0.04)' }}>
+                <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,107,43,0.15)' }}>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--accent)' }}>💡 Recommended checkpoints</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Based on 3hr driving intervals</p>
+                </div>
+                <div className="divide-y" style={{ borderColor: 'rgba(255,107,43,0.1)' }}>
+                  {suggestedCheckpoints.map((s, i) => (
+                    <div key={i} className="flex items-center gap-3 px-4 py-3">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{s.name}</p>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                          {s.label}
+                          {s.expectedAt && ` · est. ${new Date(s.expectedAt).toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short' })}`}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCheckpoints(c => [...c, { name: s.name, expected_at: s.expectedAt || '', leg: 'outbound' }])
+                          setSuggestedCheckpoints(sc => sc.filter((_, idx) => idx !== i))
+                        }}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                        style={{ background: 'var(--accent)', color: '#fff' }}
+                      >
+                        + Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSuggestedCheckpoints(sc => sc.filter((_, idx) => idx !== i))}
+                        className="text-xs px-2 py-1.5 rounded-lg"
+                        style={{ color: 'var(--text-dim)', border: '1px solid var(--border)' }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {checkpoints.length === 0 && !loadingSuggestions && suggestedCheckpoints.length === 0 && (
               <p className="text-sm text-center py-4" style={{ color: 'var(--text-dim)' }}>No checkpoints added. Add towns or stops along the route.</p>
             )}
 
