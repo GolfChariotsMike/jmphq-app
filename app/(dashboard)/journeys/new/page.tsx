@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import SignaturePad from '@/components/SignaturePad'
 import LocationInput from '@/components/LocationInput'
+import { useDirections } from '@/lib/useDirections'
 import { ChevronRight, ChevronLeft, Plus, Trash2, AlertTriangle } from 'lucide-react'
 
 const STEPS = [
@@ -61,6 +62,21 @@ export default function NewJourneyPage() {
   const [retDepart, setRetDepart] = useState('')
   const [retArrive, setRetArrive] = useState('')
   const [distanceKm, setDistanceKm] = useState('')
+  const [directionsInfo, setDirectionsInfo] = useState<{ durationText: string } | null>(null)
+
+  const handleDirectionsResult = useCallback((result: any) => {
+    if (!result) return
+    setDistanceKm(result.distanceKm.toString())
+    setDirectionsInfo({ durationText: result.durationText })
+    // Auto-fill arrival time if departure is set
+    if (outDepart) {
+      const depart = new Date(outDepart)
+      depart.setSeconds(depart.getSeconds() + result.durationSeconds)
+      setOutArrive(depart.toISOString().slice(0, 16))
+    }
+  }, [outDepart])
+
+  useDirections(outFrom, outTo, handleDirectionsResult)
 
   const [passengers, setPassengers] = useState<Passenger[]>([
     { full_name: '', phone: '', next_of_kin_name: '', next_of_kin_phone: '', signature: '' }
@@ -448,11 +464,17 @@ export default function NewJourneyPage() {
               </div>
             )}
 
+            {directionsInfo && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm" style={{ background: 'rgba(255,107,43,0.08)', border: '1px solid rgba(255,107,43,0.2)', color: 'var(--accent)' }}>
+                🗺️ Route calculated: <strong>{distanceKm} km</strong> · est. <strong>{directionsInfo.durationText}</strong>
+              </div>
+            )}
+
             <div>
-              <label className="label">Estimated distance (km)</label>
-              <input className="input" type="number" placeholder="e.g. 1500" value={distanceKm} onChange={e => setDistanceKm(e.target.value)} />
+              <label className="label">Distance (km)</label>
+              <input className="input" type="number" placeholder="Auto-filled from route" value={distanceKm} onChange={e => setDistanceKm(e.target.value)} />
               <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>
-                Or <a href={`https://maps.google.com/maps?saddr=${encodeURIComponent(outFrom)}&daddr=${encodeURIComponent(outTo)}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>view on Google Maps</a>
+                <a href={`https://maps.google.com/maps?saddr=${encodeURIComponent(outFrom)}&daddr=${encodeURIComponent(outTo)}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>View on Google Maps ↗</a>
               </p>
             </div>
           </>
