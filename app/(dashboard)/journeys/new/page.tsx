@@ -62,20 +62,22 @@ export default function NewJourneyPage() {
   const [retDepart, setRetDepart] = useState('')
   const [retArrive, setRetArrive] = useState('')
   const [distanceKm, setDistanceKm] = useState('')
-  const [directionsInfo, setDirectionsInfo] = useState<{ durationText: string } | null>(null)
+  const [directionsInfo, setDirectionsInfo] = useState<{ durationText: string; durationSeconds: number } | null>(null)
   const [showMapModal, setShowMapModal] = useState(false)
 
   const handleDirectionsResult = useCallback((result: any) => {
     if (!result) return
     setDistanceKm(result.distanceKm.toString())
-    setDirectionsInfo({ durationText: result.durationText })
-    // Auto-fill arrival time if departure is set
-    if (outDepart) {
-      const depart = new Date(outDepart)
-      depart.setSeconds(depart.getSeconds() + result.durationSeconds)
-      setOutArrive(depart.toISOString().slice(0, 16))
-    }
-  }, [outDepart])
+    setDirectionsInfo({ durationText: result.durationText, durationSeconds: result.durationSeconds })
+  }, [])
+
+  // Recalculate arrival whenever departure time or route duration changes
+  useEffect(() => {
+    if (!directionsInfo?.durationSeconds || !outDepart) return
+    const depart = new Date(outDepart)
+    depart.setSeconds(depart.getSeconds() + directionsInfo.durationSeconds)
+    setOutArrive(depart.toISOString().slice(0, 16))
+  }, [outDepart, directionsInfo?.durationSeconds])
 
   useDirections(outFrom, outTo, handleDirectionsResult)
 
