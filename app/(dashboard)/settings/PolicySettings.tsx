@@ -13,7 +13,6 @@ interface JourneyPolicy {
   jmp_required_km: number
   jmp_required_unsealed: boolean
   jmp_required_adverse_weather: boolean
-  min_water_litres: number
   checkin_interval_hours: number
 }
 
@@ -135,12 +134,6 @@ export default function PolicySettings({ orgId, policy: initial }: { orgId: stri
               value={policy.jmp_required_km}
               onChange={e => update('jmp_required_km', parseInt(e.target.value))} />
             <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>JMP required if trip exceeds this</p>
-          </div>
-          <div>
-            <label className="label">Min water to carry (litres)</label>
-            <input className="input" type="number" step="1" min="0"
-              value={policy.min_water_litres}
-              onChange={e => update('min_water_litres', parseInt(e.target.value))} />
           </div>
         </div>
 

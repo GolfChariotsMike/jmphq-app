@@ -34,7 +34,6 @@ export default async function SettingsPage() {
     jmp_required_km: 300,
     jmp_required_unsealed: true,
     jmp_required_adverse_weather: true,
-    min_water_litres: 10,
     checkin_interval_hours: 3,
   }
   const policy = { ...defaultPolicy, ...(org?.journey_policies || {}) }
