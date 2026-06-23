@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Navigation } from 'lucide-react'
+import { ArrowLeft, Navigation, Pencil } from 'lucide-react'
 import JourneyActions from './JourneyActions'
 import RepeatJourneyButton from './RepeatJourneyButton'
 
@@ -92,9 +92,18 @@ export default async function JourneyDetailPage({ params }: { params: Promise<{ 
             Created {new Date(journey.created_at).toLocaleDateString('en-AU')}
           </p>
         </div>
-        <div className="px-3 py-1.5 rounded-lg text-sm font-semibold"
-          style={{ background: `${cfg.color}20`, color: cfg.color }}>
-          {cfg.label}
+        <div className="flex items-center gap-2">
+          <div className="px-3 py-1.5 rounded-lg text-sm font-semibold"
+            style={{ background: `${cfg.color}20`, color: cfg.color }}>
+            {cfg.label}
+          </div>
+          {journey.status === 'draft' && (
+            <Link href={`/journeys/new?edit=${journey.id}`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-all hover:border-white/30"
+              style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+              <Pencil size={13} /> Edit
+            </Link>
+          )}
         </div>
       </div>
 

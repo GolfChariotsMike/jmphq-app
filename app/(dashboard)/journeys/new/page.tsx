@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import SignaturePad from '@/components/SignaturePad'
+import LocationInput from '@/components/LocationInput'
 import { ChevronRight, ChevronLeft, Plus, Trash2, AlertTriangle } from 'lucide-react'
 
 const STEPS = [
@@ -35,7 +36,10 @@ export default function NewJourneyPage() {
   const [userId, setUserId] = useState('')
   const [orgCountry, setOrgCountry] = useState('AU')
   const [trialExpired, setTrialExpired] = useState(false)
-  const [journeyId, setJourneyId] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const editId = searchParams.get('edit')
+  const isEditMode = !!editId
+  const [journeyId, setJourneyId] = useState<string | null>(editId || null)
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [staff, setStaff] = useState<StaffMember[]>([])
@@ -118,6 +122,32 @@ export default function NewJourneyPage() {
         initial[item.id] = { response: null, notes: '' }
       })
       setChecklistAnswers(initial)
+
+      // Edit mode — pre-load existing journey data
+      if (editId) {
+        const { data: j } = await supabase.from('journeys').select('*').eq('id', editId).single()
+        if (j) {
+          setPurpose(j.purpose || '')
+          setVehicleId(j.vehicle_id || '')
+          setDriverId(j.driver_id || user.id)
+          setRadioChannel(j.radio_channel || '')
+          setJourneyType(j.journey_type || 'single')
+          setOutFrom(j.outbound_from || '')
+          setOutTo(j.outbound_to || '')
+          setOutDepart(j.outbound_depart_at ? j.outbound_depart_at.slice(0, 16) : '')
+          setOutArrive(j.outbound_arrive_at ? j.outbound_arrive_at.slice(0, 16) : '')
+          setOneWay(j.is_one_way ?? true)
+          setRetFrom(j.return_from || '')
+          setRetTo(j.return_to || '')
+          setRetDepart(j.return_depart_at ? j.return_depart_at.slice(0, 16) : '')
+          setRetArrive(j.return_arrive_at ? j.return_arrive_at.slice(0, 16) : '')
+          setDistanceKm(j.route_distance_km?.toString() || '')
+        }
+        const { data: cps } = await supabase.from('checkpoints').select('*').eq('journey_id', editId).order('sort_order')
+        if (cps?.length) setCheckpoints(cps.map((cp: any) => ({ name: cp.name, expected_at: cp.expected_at?.slice(0, 16) || '', leg: cp.leg })))
+        const { data: pax } = await supabase.from('journey_passengers').select('*').eq('journey_id', editId)
+        if (pax?.length) setPassengers(pax.map((p: any) => ({ full_name: p.full_name, phone: p.phone || '', next_of_kin_name: p.next_of_kin_name || '', next_of_kin_phone: p.next_of_kin_phone || '', signature: p.signature_url || '' })))
+      }
     }
     load()
   }, [])
@@ -292,7 +322,7 @@ export default function NewJourneyPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">New Journey</h1>
+        <h1 className="text-2xl font-bold mb-1">{isEditMode ? 'Edit Journey' : 'New Journey'}</h1>
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Step {step + 1} of {STEPS.length}: {STEPS[step]}</p>
       </div>
 
@@ -363,11 +393,11 @@ export default function NewJourneyPage() {
               <div className="space-y-3">
                 <div>
                   <label className="label">From</label>
-                  <input className="input" placeholder="e.g. Perth CBD, WA" value={outFrom} onChange={e => setOutFrom(e.target.value)} />
+                  <LocationInput value={outFrom} onChange={setOutFrom} placeholder="e.g. Perth CBD, WA" />
                 </div>
                 <div>
                   <label className="label">To</label>
-                  <input className="input" placeholder="e.g. Karratha, WA" value={outTo} onChange={e => setOutTo(e.target.value)} />
+                  <LocationInput value={outTo} onChange={setOutTo} placeholder="e.g. Karratha, WA" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -399,11 +429,11 @@ export default function NewJourneyPage() {
                 <p className="text-sm font-semibold">Return leg</p>
                 <div>
                   <label className="label">From</label>
-                  <input className="input" placeholder="e.g. Karratha, WA" value={retFrom} onChange={e => setRetFrom(e.target.value)} />
+                  <LocationInput value={retFrom} onChange={setRetFrom} placeholder="e.g. Karratha, WA" />
                 </div>
                 <div>
                   <label className="label">To</label>
-                  <input className="input" placeholder="e.g. Perth CBD, WA" value={retTo} onChange={e => setRetTo(e.target.value)} />
+                  <LocationInput value={retTo} onChange={setRetTo} placeholder="e.g. Perth CBD, WA" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -658,7 +688,7 @@ export default function NewJourneyPage() {
             disabled={loading || trialExpired}
             className="btn-primary"
           >
-            {loading ? 'Submitting…' : 'Submit for approval'}
+            {loading ? 'Saving…' : isEditMode ? 'Save & submit for approval' : 'Submit for approval'}
           </button>
         )}
       </div>
