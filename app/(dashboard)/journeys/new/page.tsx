@@ -467,15 +467,26 @@ export default function NewJourneyPage() {
 
             {directionsInfo && (
               <>
-                <button
-                  type="button"
-                  onClick={() => setShowMapModal(true)}
-                  className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-sm text-left transition-all hover:opacity-80"
-                  style={{ background: 'rgba(255,107,43,0.08)', border: '1px solid rgba(255,107,43,0.2)', color: 'var(--accent)', cursor: 'pointer' }}
-                >
-                  🗺️ Route calculated: <strong>{distanceKm} km</strong> · est. <strong>{directionsInfo.durationText}</strong>
-                  <span className="ml-auto text-xs opacity-60">tap to view map ↗</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowMapModal(true)}
+                    className="flex items-center gap-2 flex-1 px-3 py-2 rounded-xl text-sm text-left transition-all hover:opacity-80"
+                    style={{ background: 'rgba(255,107,43,0.08)', border: '1px solid rgba(255,107,43,0.2)', color: 'var(--accent)', cursor: 'pointer' }}
+                  >
+                    🗺️ Route: <strong>{distanceKm} km</strong> · est. <strong>{directionsInfo.durationText}</strong>
+                    <span className="ml-auto text-xs opacity-60">view map ↗</span>
+                  </button>
+                  <a
+                    href={`https://maps.google.com/maps?saddr=${encodeURIComponent(outFrom)}&daddr=${encodeURIComponent(outTo)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-2 rounded-xl text-sm font-medium transition-all hover:opacity-80"
+                    style={{ background: 'rgba(255,107,43,0.08)', border: '1px solid rgba(255,107,43,0.2)', color: 'var(--accent)', whiteSpace: 'nowrap' }}
+                  >
+                    Open in Maps ↗
+                  </a>
+                </div>
 
                 {showMapModal && (
                   <div
@@ -507,13 +518,7 @@ export default function NewJourneyPage() {
               </>
             )}
 
-            <div>
-              <label className="label">Distance (km)</label>
-              <input className="input" type="number" placeholder="Auto-filled from route" value={distanceKm} onChange={e => setDistanceKm(e.target.value)} />
-              <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>
-                <a href={`https://maps.google.com/maps?saddr=${encodeURIComponent(outFrom)}&daddr=${encodeURIComponent(outTo)}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>View on Google Maps ↗</a>
-              </p>
-            </div>
+
           </>
         )}
 
