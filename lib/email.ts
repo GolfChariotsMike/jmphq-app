@@ -1,13 +1,17 @@
 const RESEND_API_KEY = process.env.RESEND_API_KEY
-const FROM = 'JMPHQ <noreply@manyhandz.ai>'
+const FROM_DOMAIN = 'jmphq.com.au'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://app.jmphq.com.au'
 
-async function send(to: string, subject: string, html: string) {
+function makeFrom(orgName?: string) {
+  return orgName ? `${orgName} <noreply@${FROM_DOMAIN}>` : `JMPHQ <noreply@${FROM_DOMAIN}>`
+}
+
+async function send(to: string, subject: string, html: string, orgName?: string) {
   if (!RESEND_API_KEY) { console.warn('RESEND_API_KEY not set'); return }
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: FROM, to, subject, html }),
+    body: JSON.stringify({ from: makeFrom(), to, subject, html }),
   })
   if (!res.ok) console.error('Resend error:', await res.text())
 }
