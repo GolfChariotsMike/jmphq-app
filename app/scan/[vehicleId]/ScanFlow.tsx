@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { MapPin, CheckCircle, Clock, Navigation, AlertCircle } from 'lucide-react'
+import { MapPin, CheckCircle, Clock, Navigation, AlertCircle, Users } from 'lucide-react'
+import SignaturePad from '@/components/SignaturePad'
 
-type Scenario = 'loading' | 'phone' | 'no_journey' | 'select_journey' | 'start_journey' | 'in_progress' | 'complete_journey' | 'done'
+type Scenario = 'loading' | 'phone' | 'no_journey' | 'select_journey' | 'start_journey' | 'confirm_start' | 'in_progress' | 'complete_journey' | 'done'
 
 export default function ScanFlow({ vehicleId }: { vehicleId: string }) {
   const supabase = createClient()
@@ -20,6 +21,9 @@ export default function ScanFlow({ vehicleId }: { vehicleId: string }) {
   const [checkpoints, setCheckpoints] = useState<any[]>([])
   const [nextCheckpoint, setNextCheckpoint] = useState<any>(null)
   const [message, setMessage] = useState('')
+  const [passengers, setPassengers] = useState<any[]>([])
+  const [passengersConfirmed, setPassengersConfirmed] = useState(false)
+  const [driverSignature, setDriverSignature] = useState('')
 
   useEffect(() => {
     async function loadVehicle() {
@@ -129,7 +133,8 @@ export default function ScanFlow({ vehicleId }: { vehicleId: string }) {
 
       if (allApproved.length === 1) {
         setSelectedJourney(allApproved[0])
-        setScenario('start_journey')
+        await loadPassengers(allApproved[0].id)
+        setScenario('confirm_start')
       } else {
         setJourneys(allApproved)
         setScenario('select_journey')
@@ -139,11 +144,17 @@ export default function ScanFlow({ vehicleId }: { vehicleId: string }) {
 
     if (approvedJourneys.length === 1) {
       setSelectedJourney(approvedJourneys[0])
-      setScenario('start_journey')
+      await loadPassengers(approvedJourneys[0].id)
+      setScenario('confirm_start')
     } else {
       setJourneys(approvedJourneys)
       setScenario('select_journey')
     }
+  }
+
+  async function loadPassengers(journeyId: string) {
+    const { data } = await supabase.from('journey_passengers').select('*').eq('journey_id', journeyId)
+    setPassengers(data || [])
   }
 
   async function startJourney() {
@@ -157,11 +168,20 @@ export default function ScanFlow({ vehicleId }: { vehicleId: string }) {
 
       await supabase.from('vehicles').update({ status: 'in_progress' }).eq('id', vehicleId)
 
+      // Save driver signature if provided
+      if (driverSignature) {
+        const blob = await (await fetch(driverSignature)).blob()
+        const path = `driver-start-${selectedJourney.id}-${Date.now()}.png`
+        await supabase.storage.from('signatures').upload(path, blob, { contentType: 'image/png', upsert: true })
+        const { data: urlData } = supabase.storage.from('signatures').getPublicUrl(path)
+        await supabase.from('journeys').update({ driver_signature_url: urlData?.publicUrl }).eq('id', selectedJourney.id)
+      }
+
       await supabase.from('journey_events').insert({
         journey_id: selectedJourney.id,
         event_type: 'started',
         user_id: userId,
-        notes: 'Started via QR scan',
+        notes: `Started via QR scan · ${passengers.length} passenger(s) confirmed present`,
       })
 
       const cps = selectedJourney.checkpoints || []
@@ -300,7 +320,7 @@ export default function ScanFlow({ vehicleId }: { vehicleId: string }) {
                 {journeys.map(j => (
                   <button
                     key={j.id}
-                    onClick={() => { setSelectedJourney(j); setScenario('start_journey') }}
+                    onClick={async () => { setSelectedJourney(j); await loadPassengers(j.id); setScenario('confirm_start') }}
                     className="w-full text-left p-3 rounded-xl border transition-all hover:border-white/20"
                     style={{ background: 'var(--surface-2)', borderColor: 'var(--border)' }}
                   >
@@ -314,17 +334,65 @@ export default function ScanFlow({ vehicleId }: { vehicleId: string }) {
             </>
           )}
 
-          {scenario === 'start_journey' && selectedJourney && (
-            <div className="text-center">
-              <Navigation size={40} className="mx-auto mb-3" style={{ color: 'var(--accent)' }} />
-              <h2 className="text-xl font-bold mb-2">Start journey?</h2>
-              <p className="font-medium mb-1">{selectedJourney.purpose}</p>
-              <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
-                {selectedJourney.outbound_from} → {selectedJourney.outbound_to}
-              </p>
-              <button className="btn-primary w-full" onClick={startJourney} disabled={loading}>
-                {loading ? 'Starting…' : 'Confirm & Start'}
+          {(scenario === 'start_journey' || scenario === 'confirm_start') && selectedJourney && (
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Navigation size={20} style={{ color: 'var(--accent)' }} />
+                <div>
+                  <p className="font-bold text-sm">{selectedJourney.purpose}</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{selectedJourney.outbound_from} → {selectedJourney.outbound_to}</p>
+                </div>
+              </div>
+
+              {/* Passengers confirmation */}
+              <div className="rounded-xl p-3 mb-4" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Users size={15} style={{ color: 'var(--text-muted)' }} />
+                  <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
+                    PASSENGERS {passengers.length > 0 ? `(${passengers.length})` : ''}
+                  </p>
+                </div>
+                {passengers.length === 0 ? (
+                  <p className="text-xs" style={{ color: 'var(--text-dim)' }}>No passengers on this journey.</p>
+                ) : (
+                  <div className="space-y-1 mb-3">
+                    {passengers.map((p: any) => (
+                      <p key={p.id} className="text-sm">👤 {p.full_name}{p.phone ? ` · ${p.phone}` : ''}</p>
+                    ))}
+                  </div>
+                )}
+                <label className="flex items-start gap-3 cursor-pointer mt-2">
+                  <input
+                    type="checkbox"
+                    checked={passengersConfirmed}
+                    onChange={e => setPassengersConfirmed(e.target.checked)}
+                    style={{ marginTop: 2, accentColor: 'var(--accent)' }}
+                  />
+                  <span className="text-sm">
+                    {passengers.length > 0
+                      ? 'All passengers are present and have been briefed'
+                      : 'I confirm no passengers on this journey'}
+                  </span>
+                </label>
+              </div>
+
+              {/* Driver signature */}
+              <div className="mb-4">
+                <SignaturePad label="Driver signature *" onSave={setDriverSignature} />
+              </div>
+
+              <button
+                className="btn-primary w-full"
+                onClick={startJourney}
+                disabled={loading || !passengersConfirmed || !driverSignature}
+              >
+                {loading ? 'Starting…' : 'Confirm & Start Journey'}
               </button>
+              {(!passengersConfirmed || !driverSignature) && (
+                <p className="text-xs text-center mt-2" style={{ color: 'var(--text-dim)' }}>
+                  {!passengersConfirmed ? 'Confirm passengers to continue' : 'Driver signature required'}
+                </p>
+              )}
             </div>
           )}
 

@@ -690,10 +690,7 @@ export default function NewJourneyPage() {
                     <input className="input" value={p.next_of_kin_phone} onChange={e => updatePassenger(i, 'next_of_kin_phone', e.target.value)} placeholder="0400 000 000" />
                   </div>
                 </div>
-                <SignaturePad
-                  label={`${p.full_name || `Passenger ${i + 1}`} signature`}
-                  onSave={(sig) => updatePassenger(i, 'signature', sig)}
-                />
+
               </div>
             ))}
           </>
