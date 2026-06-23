@@ -428,6 +428,9 @@ export default function ScanFlow({ vehicleId }: { vehicleId: string }) {
 
               {/* Driver signature */}
               <div className="mb-4">
+                <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
+                  By signing below, I confirm all passengers are present, all checklist items have been addressed, and I accept responsibility for the safety of all persons in this vehicle.
+                </p>
                 <SignaturePad label="Driver signature *" onSave={setDriverSignature} />
               </div>
 

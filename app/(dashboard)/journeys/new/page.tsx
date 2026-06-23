@@ -216,7 +216,6 @@ export default function NewJourneyPage() {
       setError('Your trial has expired. Please upgrade to continue.')
       return
     }
-    if (!driverSignature) { setError('Driver signature is required'); return }
     if (!fatigueAck) { setError('Please acknowledge the fatigue declaration'); return }
 
     setLoading(true)
@@ -306,26 +305,11 @@ export default function NewJourneyPage() {
         await supabase.from('journey_checklists').insert(clData)
       }
 
-      // Upload driver signature
-      if (driverSignature) {
-        const blob = await (await fetch(driverSignature)).blob()
-        const path = `driver-${jid}-${Date.now()}.png`
-        const { error: upErr } = await supabase.storage.from('signatures').upload(path, blob, { contentType: 'image/png', upsert: true })
-        if (!upErr) {
-          const { data: urlData } = supabase.storage.from('signatures').getPublicUrl(path)
-          await supabase.from('journeys').update({
-            driver_signature_url: urlData?.publicUrl || null,
-            fatigue_acknowledged: true,
-            status: 'pending_approval',
-            submitted_at: new Date().toISOString(),
-          }).eq('id', jid)
-        } else {
-          await supabase.from('journeys').update({
-            fatigue_acknowledged: true,
-            status: 'pending_approval',
-            submitted_at: new Date().toISOString(),
-          }).eq('id', jid)
-        }
+      await supabase.from('journeys').update({
+        fatigue_acknowledged: true,
+        status: 'pending_approval',
+        submitted_at: new Date().toISOString(),
+      }).eq('id', jid)
       }
 
       // Log event
@@ -918,8 +902,6 @@ export default function NewJourneyPage() {
                 <span className="text-sm">I acknowledge and declare the above is true</span>
               </label>
             </div>
-
-            <SignaturePad label="Driver signature *" onSave={setDriverSignature} />
 
             {error && (
               <p className="text-sm p-3 rounded-xl" style={{ color: 'var(--red)', background: 'rgba(239,68,68,0.1)' }}>{error}</p>
