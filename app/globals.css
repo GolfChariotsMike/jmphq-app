@@ -50,6 +50,13 @@ body {
   box-shadow: 0 0 0 3px rgba(255,107,43,0.15);
 }
 .input::placeholder { color: var(--text-dim); }
+
+input[type="datetime-local"],
+input[type="date"],
+input[type="time"] {
+  color: var(--text);
+  color-scheme: dark;
+}
 .label {
   display: block;
   font-size: 13px;
