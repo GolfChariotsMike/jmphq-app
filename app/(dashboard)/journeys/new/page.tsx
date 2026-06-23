@@ -23,10 +23,11 @@ const STEPS = [
 ]
 
 interface Vehicle { id: string; registration: string; make: string; model: string; max_passengers: number }
-interface StaffMember { id: string; name: string; phone: string }
+interface StaffMember { id: string; name: string; full_name: string; phone: string; next_of_kin_name: string; next_of_kin_phone: string }
 interface ChecklistItem { id: string; item_key: string; label: string; is_blocking: boolean; is_active: boolean }
 interface Passenger {
   full_name: string; phone: string; next_of_kin_name: string; next_of_kin_phone: string; signature: string
+  staff_id?: string // set if selected from staff list
 }
 interface Checkpoint {
   name: string; expected_at: string; leg: 'outbound' | 'return'
@@ -132,7 +133,7 @@ export default function NewJourneyPage() {
 
       const { data: ss } = await supabase
         .from('users')
-        .select('id, name, phone')
+        .select('id, name, full_name, phone, next_of_kin_name, next_of_kin_phone')
         .eq('org_id', profile.org_id)
       setStaff(ss || [])
 
@@ -339,7 +340,25 @@ export default function NewJourneyPage() {
     const selectedVehicle = vehicles.find(v => v.id === vehicleId)
     const maxPax = selectedVehicle?.max_passengers ?? 5
     if (passengers.length >= maxPax) return
-    setPassengers(p => [...p, { full_name: '', phone: '', next_of_kin_name: '', next_of_kin_phone: '', signature: '' }])
+    setPassengers(p => [...p, { full_name: '', phone: '', next_of_kin_name: '', next_of_kin_phone: '', signature: '', staff_id: '' }])
+  }
+
+  function selectStaffPassenger(i: number, staffId: string) {
+    if (!staffId) {
+      // Cleared — reset to blank visitor
+      setPassengers(p => p.map((pass, idx) => idx === i ? { full_name: '', phone: '', next_of_kin_name: '', next_of_kin_phone: '', signature: '', staff_id: '' } : pass))
+      return
+    }
+    const member = staff.find(s => s.id === staffId) as any
+    if (!member) return
+    setPassengers(p => p.map((pass, idx) => idx === i ? {
+      ...pass,
+      staff_id: staffId,
+      full_name: member.name || member.full_name || '',
+      phone: member.phone || '',
+      next_of_kin_name: member.next_of_kin_name || '',
+      next_of_kin_phone: member.next_of_kin_phone || '',
+    } : pass))
   }
 
   function removePassenger(i: number) {
@@ -579,12 +598,35 @@ export default function NewJourneyPage() {
               <div key={i} className="p-4 rounded-xl space-y-3" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Passenger {i + 1}</span>
-                  {passengers.length > 1 && (
-                    <button type="button" onClick={() => removePassenger(i)}>
-                      <Trash2 size={14} style={{ color: 'var(--red)' }} />
-                    </button>
+                  <button type="button" onClick={() => removePassenger(i)}>
+                    <Trash2 size={14} style={{ color: 'var(--red)' }} />
+                  </button>
+                </div>
+
+                {/* Staff or visitor selector */}
+                <div>
+                  <label className="label">Select staff member</label>
+                  <select
+                    className="input"
+                    value={p.staff_id || ''}
+                    onChange={e => selectStaffPassenger(i, e.target.value)}
+                  >
+                    <option value="">— Visitor / manual entry —</option>
+                    {staff
+                      .filter(s => s.id !== driverId) // exclude driver
+                      .filter(s => !passengers.some((pp, pi) => pi !== i && pp.staff_id === s.id)) // exclude already added
+                      .map(s => (
+                        <option key={s.id} value={s.id}>{s.name || s.full_name}</option>
+                      ))
+                    }
+                  </select>
+                  {p.staff_id && (
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>
+                      Details auto-filled from staff profile · <button type="button" onClick={() => selectStaffPassenger(i, '')} style={{ color: 'var(--accent)', textDecoration: 'underline' }}>clear</button>
+                    </p>
                   )}
                 </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="label">Full name *</label>
