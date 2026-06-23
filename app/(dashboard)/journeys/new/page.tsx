@@ -42,6 +42,8 @@ export default function NewJourneyPage() {
   const [orgId, setOrgId] = useState('')
   const [userId, setUserId] = useState('')
   const [orgCountry, setOrgCountry] = useState('AU')
+  const [approverOptions, setApproverOptions] = useState<{id: string; name: string; email: string; role: string}[]>([])
+  const [selectedApprovers, setSelectedApprovers] = useState<string[]>([])
   const [trialExpired, setTrialExpired] = useState(false)
   const searchParams = useSearchParams()
   const editId = searchParams.get('edit')
@@ -109,7 +111,7 @@ export default function NewJourneyPage() {
 
       const { data: profile } = await supabase
         .from('users')
-        .select('org_id, organisations(country, trial_ends_at, subscription_status)')
+        .select('org_id, organisations(country, trial_ends_at, subscription_status, approval_notify_roles)')
         .eq('id', user.id)
         .single()
 
@@ -119,6 +121,18 @@ export default function NewJourneyPage() {
 
       const org = profile.organisations as any
       if (org?.country) setOrgCountry(org.country)
+
+      // Load eligible approvers based on org notify roles
+      const notifyRoles = org?.approval_notify_roles || ['admin', 'manager']
+      const { data: approvers } = await supabase
+        .from('users')
+        .select('id, name, full_name, email, role')
+        .eq('org_id', profile.org_id)
+        .in('role', notifyRoles)
+        .not('email', 'is', null)
+      const approverList = (approvers || []).map((a: any) => ({ id: a.id, name: a.name || a.full_name, email: a.email, role: a.role }))
+      setApproverOptions(approverList)
+      setSelectedApprovers(approverList.map((a: any) => a.id)) // default: all selected
 
       if (org?.subscription_status === 'trial' && org?.trial_ends_at) {
         setTrialExpired(new Date(org.trial_ends_at) < new Date())
@@ -318,11 +332,11 @@ export default function NewJourneyPage() {
         user_id: userId,
       })
 
-      // Notify approvers (fire and forget)
+      // Notify selected approvers (fire and forget)
       fetch('/api/notify/approval-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ journeyId: jid }),
+        body: JSON.stringify({ journeyId: jid, approverIds: selectedApprovers }),
       }).catch(() => {})
 
       router.push('/journeys')
@@ -823,6 +837,34 @@ export default function NewJourneyPage() {
 
         {step === 5 && (
           <>
+            {/* Approver selection */}
+            <div className="p-4 rounded-xl mb-2" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+              <p className="text-sm font-semibold mb-1">Who should approve this journey?</p>
+              <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>All managers can see it in the dashboard. Select who to notify by email.</p>
+              {approverOptions.length === 0 ? (
+                <p className="text-xs" style={{ color: 'var(--text-dim)' }}>No managers with email addresses found. Add emails to staff profiles in Settings.</p>
+              ) : (
+                <div className="space-y-2">
+                  {approverOptions.map(a => (
+                    <label key={a.id} className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                      <div>
+                        <p className="text-sm font-medium">{a.name}</p>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{a.role} · {a.email}</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={selectedApprovers.includes(a.id)}
+                        onChange={e => setSelectedApprovers(prev =>
+                          e.target.checked ? [...prev, a.id] : prev.filter(id => id !== a.id)
+                        )}
+                        style={{ accentColor: 'var(--accent)', width: 18, height: 18 }}
+                      />
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {trialExpired && (
               <div className="p-4 rounded-xl text-center" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
                 <p className="font-semibold mb-1" style={{ color: 'var(--red)' }}>Trial expired</p>

@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { sendApprovalRequest } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
-  const { journeyId } = await req.json()
+  const { journeyId, approverIds } = await req.json()
   if (!journeyId) return NextResponse.json({ error: 'Missing journeyId' }, { status: 400 })
 
   const supabase = await createClient()
@@ -20,13 +20,14 @@ export async function POST(req: NextRequest) {
   const org = journey.org as any
   const notifyRoles: string[] = org?.approval_notify_roles || ['admin', 'manager']
 
-  // Get all users in the org with a notify role who have an email
-  const { data: approvers } = await supabase
-    .from('users')
-    .select('name, email')
-    .eq('org_id', org.id)
-    .in('role', notifyRoles)
-    .not('email', 'is', null)
+  // Get approvers — filtered to selected IDs if provided, otherwise all eligible
+  let query = supabase.from('users').select('name, email').eq('org_id', org.id).not('email', 'is', null)
+  if (approverIds?.length) {
+    query = query.in('id', approverIds)
+  } else {
+    query = query.in('role', notifyRoles)
+  }
+  const { data: approvers } = await query
 
   if (!approvers?.length) return NextResponse.json({ ok: true, note: 'No approvers found' })
 
